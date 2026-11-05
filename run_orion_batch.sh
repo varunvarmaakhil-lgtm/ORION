@@ -22,7 +22,7 @@ run() {
 }
 
 # Alternate PPO/ORION so a partial night still gives matched pairs.
-for seed in 4 5; do
+for seed in 6 7 8 9 10; do
   run ppo   $seed orion_ppo_baseline.yaml
   run orion $seed orion_success.yaml
 done

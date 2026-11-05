@@ -5,7 +5,7 @@ while true; do
   clear
   echo "ORION batch progress   $(date '+%H:%M:%S')"
   echo "------------------------------------------------------------"
-  for name in ppo_s1 orion_s1 ppo_s2 orion_s2 ppo_s3 orion_s3 ppo_s4 orion_s4 ppo_s5 orion_s5; do
+  for name in ppo_s1 orion_s1 ppo_s2 orion_s2 ppo_s3 orion_s3 ppo_s4 orion_s4 ppo_s5 orion_s5 ppo_s6 orion_s6 ppo_s7 orion_s7 ppo_s8 orion_s8 ppo_s9 orion_s9 ppo_s10 orion_s10; do
     f=$(ls -t logs/runs/${name}_a*.log 2>/dev/null | head -1)
     if grep -q "$name attempt [0-9] exited with 0" logs/runs/batch_status.txt 2>/dev/null; then
       u=10000; status="DONE"
