@@ -338,6 +338,7 @@ class PPOTrainer(BaseRLTrainer):
         Returns:
             dict containing checkpoint info
         """
+        kwargs.setdefault("weights_only", False)  # trusted local Habitat checkpoints (PyTorch 2.6+)
         return torch.load(checkpoint_path, *args, **kwargs)
 
     def _compute_actions_and_step_envs(self, buffer_index: int = 0):
