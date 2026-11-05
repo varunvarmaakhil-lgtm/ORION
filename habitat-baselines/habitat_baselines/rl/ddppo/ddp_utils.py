@@ -200,18 +200,16 @@ def save_resume_state(
     torch.save(state, filename)
 
 
+
 def load_resume_state(
-    filename_or_config: Union[DictConfig, str], filename_key: str = ""
+    filename_or_config: Union[DictConfig, str],
+    filename_key: str = "",
 ) -> Optional[Any]:
-    r"""Loads the saved resume state
-
-    :param filename_or_config: The filename of the saved state or the config to construct it.
-    :param filename_key: If generating the filename from the config, append this to the name.
-
-    :return: The saved state if the file exists, else none
-    """
+    """Load a saved Habitat resume state, if one exists."""
     if isinstance(filename_or_config, DictConfig):
-        filename = resume_state_filename(filename_or_config, filename_key)
+        filename = resume_state_filename(
+            filename_or_config, filename_key
+        )
     else:
         filename = filename_or_config
 
@@ -221,7 +219,13 @@ def load_resume_state(
     if rank0_only():
         logger.info(f"Loading resume state: {filename}")
 
-    return torch.load(filename, map_location="cpu")
+    # Habitat resume checkpoints are trusted local files.
+    # PyTorch 2.6+ requires weights_only=False for these objects.
+    return torch.load(
+        filename,
+        map_location="cpu",
+        weights_only=False,
+    )
 
 
 def requeue_job():

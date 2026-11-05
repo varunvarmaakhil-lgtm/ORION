@@ -1,0 +1,58 @@
+# @package _global_
+
+# ORION project: PPO + ORION success auxiliary head.
+# Same hyperparameters as orion_ppo_baseline.yaml so the comparison is fair.
+
+defaults:
+  - /benchmark/nav/pointnav: pointnav_habitat_test
+  - /habitat_baselines: habitat_baselines_rl_config_base
+  - _self_
+
+habitat_baselines:
+  trainer_name: ppo
+  torch_gpu_id: -1
+
+  tensorboard_dir: tb/runs/orion_s1
+  video_dir: video_dir
+  checkpoint_folder: data/runs/orion_s1
+  eval_ckpt_path_dir: data/runs/orion_s1
+
+  test_episode_count: -1
+  num_environments: 1
+
+  num_updates: 10000
+  total_num_steps: -1
+  load_resume_state_config: false
+
+  log_interval: 10
+  num_checkpoints: 10
+  force_torch_single_threaded: true
+
+  eval:
+    video_option: []
+
+  rl:
+    # ORION auxiliary success head.
+    auxiliary_losses:
+      orion:
+        loss_scale: 0.05
+        target_temperature: 1.0
+        hidden_dim: 256
+
+    ppo:
+      clip_param: 0.1
+      ppo_epoch: 1
+      num_mini_batch: 1
+      value_loss_coef: 0.5
+      entropy_coef: 0.01
+      lr: 0.00025
+      eps: 0.00001
+      max_grad_norm: 0.5
+      num_steps: 32
+      hidden_size: 512
+      use_gae: true
+      gamma: 0.99
+      tau: 0.95
+      use_linear_clip_decay: true
+      use_linear_lr_decay: true
+      reward_window_size: 50

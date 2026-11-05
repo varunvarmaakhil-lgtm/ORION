@@ -415,6 +415,37 @@ class PPOTrainer(BaseRLTrainer):
                 list(x) for x in zip(*outputs)
             ]
 
+            
+        # ORION auxiliary target: use Habitat's actual Success measure.
+        # The environment info dictionary is populated from get_metrics().
+        success_values = []
+
+        for info in infos:
+            if "success" not in info:
+                raise KeyError(
+                        "ORION requires Habitat's 'success' measure, but "
+                        "it was missing from environment info. "
+                        f"Available metric keys: {list(info.keys())}"
+                    )
+
+            success_value = info["success"]
+
+            if isinstance(success_value, torch.Tensor):
+                    success_value = success_value.item()
+
+            success_value = float(success_value)
+
+            if not np.isfinite(success_value):
+                    raise ValueError(
+                        "Habitat returned a non-finite success metric: "
+                        f"{success_value}"
+                    )
+
+            success_values.append(
+                    1.0 if success_value >= 0.5 else 0.0
+                )
+
+
         with g_timer.avg_time("trainer.update_stats"):
             observations = self.envs.post_step(observations)
             batch = batch_obs(observations, device=self.device)
@@ -426,6 +457,11 @@ class PPOTrainer(BaseRLTrainer):
                 device=self.current_episode_reward.device,
             )
             rewards = rewards.unsqueeze(1)
+            success_targets = torch.tensor(
+                success_values,
+                dtype=torch.float,
+                device=self.current_episode_reward.device,
+            ).unsqueeze(1)
 
             not_done_masks = torch.tensor(
                 [[not done] for done in dones],
@@ -473,6 +509,7 @@ class PPOTrainer(BaseRLTrainer):
         self._agent.rollouts.insert(
             next_observations=batch,
             rewards=rewards,
+            success_targets=success_targets,
             next_masks=not_done_masks,
             buffer_index=buffer_index,
         )
@@ -654,11 +691,7 @@ class PPOTrainer(BaseRLTrainer):
 
     @profiling_wrapper.RangeContext("train")
     def train(self) -> None:
-        r"""Main method for training DD/PPO.
-
-        Returns:
-            None
-        """
+        r"""Main PPO training loop for ORION."""
 
         resume_state = load_resume_state(self.config)
         self._init_train(resume_state)
@@ -681,12 +714,48 @@ class PPOTrainer(BaseRLTrainer):
             ]
             count_checkpoints = requeue_stats["count_checkpoints"]
             prev_time = requeue_stats["prev_time"]
-
             self.running_episode_stats = requeue_stats["running_episode_stats"]
             self.window_episode_stats.update(
                 requeue_stats["window_episode_stats"]
             )
             resume_run_id = requeue_stats.get("run_id", None)
+
+        # ORION uses an explicit PPO-update target when num_updates is set.
+        # This avoids relying on any inherited stopping condition for the
+        # 10,000-update training run.
+        configured_num_updates = int(
+            self.config.habitat_baselines.num_updates
+        )
+        explicit_update_target = (
+            configured_num_updates
+            if configured_num_updates != -1
+            else None
+        )
+
+        if rank0_only():
+            logger.info("=" * 70)
+            logger.info("ORION PPO TRAINING")
+            logger.info(
+                f"Configured num_updates: {configured_num_updates}"
+            )
+            logger.info(
+                f"Configured total_num_steps: "
+                f"{self.config.habitat_baselines.total_num_steps}"
+            )
+            logger.info(
+                f"Starting num_updates_done: {self.num_updates_done}"
+            )
+            logger.info(
+                f"Starting num_steps_done: {self.num_steps_done}"
+            )
+            logger.info(
+                f"Checkpoint folder: "
+                f"{self.config.habitat_baselines.checkpoint_folder}"
+            )
+            logger.info(
+                f"Resume state loaded: {resume_state is not None}"
+            )
+            logger.info("=" * 70)
 
         with (
             get_writer(
@@ -698,7 +767,14 @@ class PPOTrainer(BaseRLTrainer):
             if rank0_only()
             else contextlib.suppress()
         ) as writer:
-            while not self.is_done():
+            while True:
+                # Explicit update target for ORION.
+                if explicit_update_target is not None:
+                    if self.num_updates_done >= explicit_update_target:
+                        break
+                elif self.is_done():
+                    break
+
                 profiling_wrapper.on_start_step()
                 profiling_wrapper.range_push("train update")
 
@@ -725,20 +801,27 @@ class PPOTrainer(BaseRLTrainer):
                         self.config,
                     )
 
+                # EXIT is a preemption/requeue signal. For a local ORION run,
+                # do not silently turn a stale signal into a false completion.
                 if EXIT.is_set():
-                    profiling_wrapper.range_pop()  # train update
+                    if rank0_only():
+                        logger.warning(
+                            "ORION EXIT signal detected at "
+                            f"update {self.num_updates_done}."
+                        )
 
+                    profiling_wrapper.range_pop()
                     self.envs.close()
 
-                    requeue_job()
-
+                    if self._is_distributed:
+                        requeue_job()
                     return
 
                 self._agent.eval()
                 count_steps_delta = 0
                 profiling_wrapper.range_push("rollouts loop")
-
                 profiling_wrapper.range_push("_collect_rollout_step")
+
                 with g_timer.avg_time("trainer.rollout_collect"):
                     for buffer_index in range(self._agent.nbuffers):
                         self._compute_actions_and_step_envs(buffer_index)
@@ -750,12 +833,12 @@ class PPOTrainer(BaseRLTrainer):
                         )
 
                         for buffer_index in range(self._agent.nbuffers):
-                            count_steps_delta += (
-                                self._collect_environment_result(buffer_index)
+                            count_steps_delta += self._collect_environment_result(
+                                buffer_index
                             )
 
                             if (buffer_index + 1) == self._agent.nbuffers:
-                                profiling_wrapper.range_pop()  # _collect_rollout_step
+                                profiling_wrapper.range_pop()
 
                             if not is_last_step:
                                 if (buffer_index + 1) == self._agent.nbuffers:
@@ -763,29 +846,21 @@ class PPOTrainer(BaseRLTrainer):
                                         "_collect_rollout_step"
                                     )
 
-                                self._compute_actions_and_step_envs(
-                                    buffer_index
-                                )
+                                self._compute_actions_and_step_envs(buffer_index)
 
                         if is_last_step:
                             break
 
-                profiling_wrapper.range_pop()  # rollouts loop
+                profiling_wrapper.range_pop()
 
                 if self._is_distributed:
                     self.num_rollouts_done_store.add("num_done", 1)
 
                 losses = self._update_agent()
-
                 self.num_updates_done += 1
-                losses = self._coalesce_post_step(
-                    losses,
-                    count_steps_delta,
-                )
-
+                losses = self._coalesce_post_step(losses, count_steps_delta)
                 self._training_log(writer, losses, prev_time)
 
-                # checkpoint model
                 if rank0_only() and self.should_checkpoint():
                     self.save_checkpoint(
                         f"ckpt.{count_checkpoints}.pth",
@@ -796,7 +871,41 @@ class PPOTrainer(BaseRLTrainer):
                     )
                     count_checkpoints += 1
 
-                profiling_wrapper.range_pop()  # train update
+                profiling_wrapper.range_pop()
+
+                if (
+                    rank0_only()
+                    and explicit_update_target is not None
+                    and self.num_updates_done % 100 == 0
+                ):
+                    logger.info(
+                        "=" * 70
+                    )
+                    logger.info(
+                        f"ORION PROGRESS: {self.num_updates_done} / "
+                        f"{explicit_update_target} "
+                        f"({self.num_updates_done / explicit_update_target * 100:.2f}%)"
+                    )
+                    logger.info(
+                        f"Environment frames: {self.num_steps_done}"
+                    )
+                    logger.info(
+                        "=" * 70
+                    )
+
+            if rank0_only():
+                logger.info("=" * 70)
+                logger.info("ORION TRAINING COMPLETE")
+                logger.info(
+                    f"Final PPO updates: {self.num_updates_done}"
+                )
+                logger.info(
+                    f"Final environment frames: {self.num_steps_done}"
+                )
+                logger.info(
+                    f"Target PPO updates: {explicit_update_target}"
+                )
+                logger.info("=" * 70)
 
             self.envs.close()
 

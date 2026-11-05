@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from habitat_baselines.rl.ppo.cpc_aux_loss import CPCA
+from habitat_baselines.rl.ppo.orion_aux_loss import ORIONStopLoss
 from habitat_baselines.rl.ppo.policy import (
     Net,
     NetPolicy,
@@ -20,4 +21,5 @@ __all__ = [
     "Net",
     "PointNavBaselinePolicy",
     "CPCA",
+    "ORIONStopLoss",
 ]

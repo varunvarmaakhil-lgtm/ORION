@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 # Copyright (c) Meta Platforms, Inc. and its affiliates.
@@ -59,6 +60,9 @@ class RolloutStorage(Storage):
         )
 
         self.buffers["rewards"] = torch.zeros(numsteps + 1, num_envs, 1)
+        self.buffers["success_targets"] = torch.zeros(
+            numsteps + 1, num_envs, 1
+        )
         self.buffers["value_preds"] = torch.zeros(numsteps + 1, num_envs, 1)
         self.buffers["returns"] = torch.zeros(numsteps + 1, num_envs, 1)
 
@@ -75,6 +79,7 @@ class RolloutStorage(Storage):
         self.buffers["prev_actions"] = torch.zeros(
             numsteps + 1, num_envs, *action_shape
         )
+
         if discrete_actions:
             assert isinstance(self.buffers["actions"], torch.Tensor)
             assert isinstance(self.buffers["prev_actions"], torch.Tensor)
@@ -118,6 +123,7 @@ class RolloutStorage(Storage):
         action_log_probs=None,
         value_preds=None,
         rewards=None,
+        success_targets=None,
         next_masks=None,
         buffer_index: int = 0,
         **kwargs,
@@ -137,6 +143,7 @@ class RolloutStorage(Storage):
             action_log_probs=action_log_probs,
             value_preds=value_preds,
             rewards=rewards,
+            success_targets=success_targets,
         )
 
         next_step = {k: v for k, v in next_step.items() if v is not None}
@@ -166,7 +173,6 @@ class RolloutStorage(Storage):
 
     def after_update(self):
         self.buffers[0] = self.buffers[self.current_rollout_step_idx]
-
         self.current_rollout_step_idxs = [
             0 for _ in self.current_rollout_step_idxs
         ]
@@ -179,6 +185,7 @@ class RolloutStorage(Storage):
                 self.current_rollout_step_idx
             ] = next_value
             gae = 0.0
+
             for step in reversed(range(self.current_rollout_step_idx)):
                 delta = (
                     self.buffers["rewards"][step]
@@ -188,14 +195,17 @@ class RolloutStorage(Storage):
                     - self.buffers["value_preds"][step]
                 )
                 gae = (
-                    delta + gamma * tau * gae * self.buffers["masks"][step + 1]
+                    delta
+                    + gamma * tau * gae * self.buffers["masks"][step + 1]
                 )
-                self.buffers["returns"][step] = (  # type: ignore
-                    gae + self.buffers["value_preds"][step]  # type: ignore
+                self.buffers["returns"][step] = (
+                    gae + self.buffers["value_preds"][step]
                 )
-
         else:
-            self.buffers["returns"][self.current_rollout_step_idx] = next_value
+            self.buffers["returns"][
+                self.current_rollout_step_idx
+            ] = next_value
+
             for step in reversed(range(self.current_rollout_step_idx)):
                 self.buffers["returns"][step] = (
                     gamma
@@ -211,6 +221,7 @@ class RolloutStorage(Storage):
     ) -> Iterator[DictTree]:
         assert isinstance(self.buffers["returns"], torch.Tensor)
         num_environments = self.buffers["returns"].size(1)
+
         assert num_environments >= num_mini_batch, (
             "Trainer requires the number of environments ({}) "
             "to be greater than or equal to the number of "
@@ -218,10 +229,11 @@ class RolloutStorage(Storage):
                 num_environments, num_mini_batch
             )
         )
+
         if num_environments % num_mini_batch != 0:
             warnings.warn(
                 "Number of environments ({}) is not a multiple of the"
-                " number of mini batches ({}).  This results in mini batches"
+                " number of mini batches ({}). This results in mini batches"
                 " of different sizes, which can harm training performance.".format(
                     num_environments, num_mini_batch
                 )
@@ -233,12 +245,15 @@ class RolloutStorage(Storage):
             .view(-1, self._num_envs)
             .numpy()
         )
+
         for inds in torch.randperm(num_environments).chunk(num_mini_batch):
             curr_slice = (slice(0, self.current_rollout_step_idx), inds)
 
             batch = self.buffers[curr_slice]
+
             if advantages is not None:
                 batch["advantages"] = advantages[curr_slice]
+
             batch["recurrent_hidden_states"] = batch[
                 "recurrent_hidden_states"
             ][0:1]

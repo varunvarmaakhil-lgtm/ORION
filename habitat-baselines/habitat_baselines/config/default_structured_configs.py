@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 # Copyright (c) Meta Platforms, Inc. and its affiliates.
@@ -24,30 +25,19 @@ class HabitatBaselinesBaseConfig:
 class WBConfig(HabitatBaselinesBaseConfig):
     """Weights and Biases config"""
 
-    # The name of the project on W&B.
     project_name: str = ""
-    # Logging entity (like your username or team name)
     entity: str = ""
-    # The group ID to assign to the run. Optional to specify.
     group: str = ""
-    # The run name to assign to the run. If not specified,
-    # W&B will randomly assign a name.
     run_name: str = ""
 
 
 @dataclass
 class EvalConfig(HabitatBaselinesBaseConfig):
-    # The split to evaluate on
     split: str = "val"
     use_ckpt_config: bool = True
     should_load_ckpt: bool = True
-    # The number of time to run each episode through evaluation.
-    # Only works when evaluating on all episodes.
     evals_per_ep: int = 1
-    video_option: List[str] = field(
-        # available options are "disk" and "tensorboard"
-        default_factory=list
-    )
+    video_option: List[str] = field(default_factory=list)
     extra_sim_sensors: Dict[str, SimulatorSensorConfig] = field(
         default_factory=dict
     )
@@ -55,14 +45,8 @@ class EvalConfig(HabitatBaselinesBaseConfig):
 
 @dataclass
 class PreemptionConfig(HabitatBaselinesBaseConfig):
-    # Append the slurm job ID to the resume state filename if running
-    # a slurm job. This is useful when you want to have things from a different
-    # job but the same checkpoint dir not resume.
     append_slurm_job_id: bool = False
-    # Number of gradient updates between saving the resume state
     save_resume_state_interval: int = 100
-    # Save resume states only when running with slurm
-    # This is nice if you don't want debug jobs to resume
     save_state_batch_only: bool = False
 
 
@@ -72,16 +56,13 @@ class ActionDistributionConfig(HabitatBaselinesBaseConfig):
     use_softplus: bool = False
     std_init: float = MISSING
     log_std_init: float = 0.0
-    # If True, the std will be a parameter not conditioned on state
     use_std_param: bool = False
-    # If True, the std will be clamped to the specified min and max std values
     clamp_std: bool = True
     min_std: float = 1e-6
     max_std: int = 1
     min_log_std: int = -5
     max_log_std: int = 2
-    # For continuous action distributions (including gaussian):
-    action_activation: str = "tanh"  # ['tanh', '']
+    action_activation: str = "tanh"
     scheduled_std: bool = False
 
 
@@ -228,42 +209,26 @@ class HrlDefinedSkillConfig(HabitatBaselinesBaseConfig):
     action_distribution_type: str = "gaussian"
     load_ckpt_file: str = ""
     max_skill_steps: int = 200
-    # If true, the stop action will be called if the skill times out.
     force_end_on_timeout: bool = True
-    # Overrides the config file of a neural network skill rather than loading
-    # the config file from the checkpoint file.
     force_config_file: str = ""
     at_resting_threshold: float = 0.15
-    # If true, this will apply the post-conditions of the skill after it
-    # terminates.
     apply_postconds: bool = False
-
-    # If true, do not call grip_actions automatically when calling high level skills.
-    # Do not check either if an arm action necessarily exists.
     ignore_grip: bool = False
     obs_skill_inputs: List[str] = field(default_factory=list)
     obs_skill_input_dim: int = 3
     start_zone_radius: float = 0.3
-    # For the oracle navigation skill
     action_name: str = "base_velocity"
     stop_thresh: float = 0.001
-    # For the reset_arm_skill
     reset_joint_state: List[float] = MISSING
-    # The set of PDDL action names (as defined in the PDDL domain file) that
-    # map to this skill. If not specified,the name of the skill must match the
-    # PDDL action name.
     pddl_action_names: Optional[List[str]] = None
     turn_power_x: float = 0.0
     turn_power_y: float = 0.0
-    # Additional skill data to be passed to the skill. Included so extending to
-    # new skills doesn't require adding new Hydra dataclass configs.
     skill_data: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class HierarchicalPolicyConfig(HabitatBaselinesBaseConfig):
     high_level_policy: Dict[str, Any] = MISSING
-    # Names of the skills to not load.
     ignore_skills: List[str] = field(default_factory=list)
     defined_skills: Dict[str, HrlDefinedSkillConfig] = field(
         default_factory=dict
@@ -274,9 +239,7 @@ class HierarchicalPolicyConfig(HabitatBaselinesBaseConfig):
 @dataclass
 class PolicyConfig(HabitatBaselinesBaseConfig):
     name: str = "PointNavResNetPolicy"
-    action_distribution_type: str = "categorical"  # or 'gaussian'
-    # If the list is empty, all keys will be included.
-    # For gaussian action distribution:
+    action_distribution_type: str = "categorical"
     action_dist: ActionDistributionConfig = ActionDistributionConfig()
     obs_transforms: Dict[str, ObsTransformConfig] = field(default_factory=dict)
     hierarchical_policy: HierarchicalPolicyConfig = MISSING
@@ -306,10 +269,6 @@ class PPOConfig(HabitatBaselinesBaseConfig):
     entropy_target_factor: float = 0.0
     use_adaptive_entropy_pen: bool = False
     use_clipped_value_loss: bool = True
-    # Use double buffered sampling, typically helps
-    # when environment time is similar or larger than
-    # policy inference time during rollout generation
-    # Not that this does not change the memory requirements
     use_double_buffered_sampler: bool = False
 
 
@@ -324,7 +283,10 @@ class VERConfig(HabitatBaselinesBaseConfig):
 
 @dataclass
 class AuxLossConfig(HabitatBaselinesBaseConfig):
-    pass
+    # Optional settings used by the ORION auxiliary loss.
+    loss_scale: float = 0.05
+    target_temperature: float = 1.0
+    hidden_dim: int = 256
 
 
 @dataclass
@@ -346,43 +308,32 @@ class DDPPOConfig(HabitatBaselinesBaseConfig):
     rnn_type: str = "GRU"
     num_recurrent_layers: int = 1
     backbone: str = "resnet18"
-    # Visual encoder backbone
     pretrained_weights: str = "data/ddppo-models/gibson-2plus-resnet50.pth"
-    # Initialize with pretrained weights
     pretrained: bool = False
-    # Loads just the visual encoder backbone weights
     pretrained_encoder: bool = False
-    # Whether the visual encoder backbone will be trained
     train_encoder: bool = True
-    # Whether to reset the critic linear layer
     reset_critic: bool = True
-    # Forces distributed mode for testing
     force_distributed: bool = False
 
 
 @dataclass
 class AgentAccessMgrConfig(HabitatBaselinesBaseConfig):
     type: str = "SingleAgentAccessMgr"
-    ###############################
-    # Population play configuration
     num_agent_types: int = 1
-    num_active_agents_per_type: List[int] = field(default_factory=lambda: [1])
-    num_pool_agents_per_type: List[int] = field(default_factory=lambda: [1])
+    num_active_agents_per_type: List[int] = field(
+        default_factory=lambda: [1]
+    )
+    num_pool_agents_per_type: List[int] = field(
+        default_factory=lambda: [1]
+    )
     agent_sample_interval: int = 20
     force_partner_sample_idx: int = -1
-    # A value of -1 means not configured.
     behavior_latent_dim: int = -1
-    # Configuration option for evaluating BDP. If True, then include all
-    # behavior agent IDs in the batch. If False, then we will randomly sample IDs.
     force_all_agents: bool = False
     discrim_reward_weight: float = 1.0
     allow_self_play: bool = False
     self_play_batched: bool = False
-    # If specified, this will load the policies for the type 1 population from
-    # the checkpoint file at the start of training. Used to independently train
-    # the type 1 population, and then train a separate against this population.
     load_type1_pop_ckpts: Optional[List[str]] = None
-    ###############################
 
 
 @dataclass
@@ -440,9 +391,6 @@ class HydraCallbackConfig(HabitatBaselinesBaseConfig):
 
 @dataclass
 class HabitatBaselinesConfig(HabitatBaselinesBaseConfig):
-    # task config can be a list of configs like "A.yaml,B.yaml"
-    # If habitat_baselines.evaluate is true, the run will be in evaluation mode
-    # replaces --run-type eval when true
     evaluate: bool = False
     trainer_name: str = "ppo"
     updater_name: str = "PPO"
@@ -453,47 +401,28 @@ class HabitatBaselinesConfig(HabitatBaselinesBaseConfig):
     video_dir: str = "video_dir"
     video_fps: int = 10
     test_episode_count: int = -1
-    # path to ckpt or path to ckpts dir
     eval_ckpt_path_dir: str = "data/checkpoints"
     num_environments: int = 16
-    num_processes: int = -1  # deprecated
+    num_processes: int = -1
     rollout_storage_name: str = "RolloutStorage"
     checkpoint_folder: str = "data/checkpoints"
     num_updates: int = 10000
     num_checkpoints: int = 10
-    # Number of model updates between checkpoints
     checkpoint_interval: int = -1
     total_num_steps: float = -1.0
     log_interval: int = 10
     log_file: str = "train.log"
     force_blind_policy: bool = False
     verbose: bool = True
-    # Creates the vectorized environment.
     vector_env_factory: VectorEnvFactoryConfig = VectorEnvFactoryConfig()
     evaluator: EvaluatorConfig = EvaluatorConfig()
     eval_keys_to_include_in_name: List[str] = field(default_factory=list)
-    # For our use case, the CPU side things are mainly memory copies
-    # and nothing of substantive compute. PyTorch has been making
-    # more and more memory copies parallel, but that just ends up
-    # slowing those down dramatically and reducing our perf.
-    # This forces it to be single threaded.  The default
-    # value is left as false as it's different from how
-    # PyTorch normally behaves, but all configs we provide
-    # set it to true and yours likely should too
     force_torch_single_threaded: bool = False
-    # Weights and Biases config
     wb: WBConfig = WBConfig()
-    # When resuming training or evaluating, will use the original
-    # training config if load_resume_state_config is True
     load_resume_state_config: bool = True
     eval: EvalConfig = EvalConfig()
     profiling: ProfilingConfig = ProfilingConfig()
-    # Whether to log the infos that are only logged to a single process to the
-    # CLI along with the other metrics.
     should_log_single_proc_infos: bool = False
-    # Called every time a checkpoint is saved.
-    # Function signature: fn(save_file_path: str) -> None
-    # If not specified, there is no callback.
     on_save_ckpt_callback: Optional[HydraCallbackConfig] = None
 
 
@@ -529,7 +458,9 @@ cs.store(
     node=HabitatBaselinesSPAConfig,
 )
 cs.store(
-    group="habitat_baselines/rl/policy", name="policy_base", node=PolicyConfig
+    group="habitat_baselines/rl/policy",
+    name="policy_base",
+    node=PolicyConfig,
 )
 
 cs.store(
