@@ -40,7 +40,7 @@ def scalars(logdir, tag):
     ev = ea.Scalars(tag)
     return np.array([e.step for e in ev]), np.array([e.value for e in ev])
 
-def smooth(y, k=15):
+def smooth(y, k=51):
     if len(y) < k: return y
     return np.convolve(np.pad(y, (k // 2, k - 1 - k // 2), mode="edge"), np.ones(k) / k, mode="valid")
 

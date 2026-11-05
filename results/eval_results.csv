@@ -2,6 +2,10 @@ run,method,success,spl,distance_to_goal
 ppo_s1,ppo,0.75,0.6221,1.2789
 ppo_s2,ppo,0.16,0.1374,1.7869
 ppo_s3,ppo,0.33,0.3029,1.8143
+ppo_s4,ppo,0.82,0.6956,0.4305
+ppo_s5,ppo,0.81,0.7158,0.7677
 orion_s1,orion,0.58,0.4556,0.572
 orion_s2,orion,0.47,0.4293,0.6655
 orion_s3,orion,0.79,0.6831,0.4752
+orion_s4,orion,0.57,0.4586,0.8141
+orion_s5,orion,0.82,0.7136,0.6167

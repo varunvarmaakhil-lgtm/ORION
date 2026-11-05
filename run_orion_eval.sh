@@ -1,7 +1,7 @@
 #!/bin/bash
 # Evaluate ckpt.9 of all 6 runs on the val split, one at a time.
 cd ~/habitat-lab
-for name in ppo_s1 orion_s1 ppo_s2 orion_s2 ppo_s3 orion_s3; do
+for name in ppo_s1 orion_s1 ppo_s2 orion_s2 ppo_s3 orion_s3 ppo_s4 orion_s4 ppo_s5 orion_s5; do
   case $name in ppo_*) cfg=orion_ppo_baseline.yaml;; orion_*) cfg=orion_success.yaml;; esac
   if grep -q "Average episode success" logs/eval/$name.log 2>/dev/null; then
     echo "$(date) $name already evaluated"; continue

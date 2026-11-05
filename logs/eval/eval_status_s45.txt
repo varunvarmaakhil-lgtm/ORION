@@ -1,0 +1,35 @@
+Wed Nov  4 00:45:01 IST 2026 ppo_s1 already evaluated
+Wed Nov  4 00:45:01 IST 2026 orion_s1 already evaluated
+Wed Nov  4 00:45:01 IST 2026 ppo_s2 already evaluated
+Wed Nov  4 00:45:01 IST 2026 orion_s2 already evaluated
+Wed Nov  4 00:45:01 IST 2026 ppo_s3 already evaluated
+Wed Nov  4 00:45:01 IST 2026 orion_s3 already evaluated
+Wed Nov  4 00:45:01 IST 2026 evaluating ppo_s4
+Wed Nov  4 00:46:13 IST 2026 ppo_s4 exit=0
+2026-11-04 00:46:13,336 Average episode spl: 0.6956
+2026-11-04 00:46:13,336 Average episode distance_to_goal_reward: 0.0008
+2026-11-04 00:46:13,336 Average episode distance_to_goal: 0.4305
+2026-11-04 00:46:13,336 Average episode reward: 6.7122
+2026-11-04 00:46:13,336 Average episode success: 0.8200
+Wed Nov  4 00:46:13 IST 2026 evaluating orion_s4
+Wed Nov  4 00:47:06 IST 2026 orion_s4 exit=0
+2026-11-04 00:47:06,495 Average episode success: 0.5700
+2026-11-04 00:47:06,495 Average episode distance_to_goal_reward: 0.0000
+2026-11-04 00:47:06,495 Average episode reward: 6.0375
+2026-11-04 00:47:06,495 Average episode spl: 0.4586
+2026-11-04 00:47:06,495 Average episode distance_to_goal: 0.8141
+Wed Nov  4 00:47:06 IST 2026 evaluating ppo_s5
+Wed Nov  4 00:48:35 IST 2026 ppo_s5 exit=0
+2026-11-04 00:48:35,589 Average episode distance_to_goal_reward: 0.0024
+2026-11-04 00:48:35,590 Average episode spl: 0.7158
+2026-11-04 00:48:35,590 Average episode success: 0.8100
+2026-11-04 00:48:35,590 Average episode reward: 6.1177
+2026-11-04 00:48:35,590 Average episode distance_to_goal: 0.7677
+Wed Nov  4 00:48:35 IST 2026 evaluating orion_s5
+Wed Nov  4 00:49:41 IST 2026 orion_s5 exit=0
+2026-11-04 00:49:40,998 Average episode spl: 0.7136
+2026-11-04 00:49:40,998 Average episode distance_to_goal: 0.6167
+2026-11-04 00:49:40,998 Average episode reward: 6.5717
+2026-11-04 00:49:40,998 Average episode distance_to_goal_reward: 0.0000
+2026-11-04 00:49:40,998 Average episode success: 0.8200
+Wed Nov  4 00:49:41 IST 2026 EVAL DONE
