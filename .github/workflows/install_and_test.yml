@@ -57,6 +57,7 @@ jobs:
         mypy --exclude="^docs/|setup.py$"
 
   install_and_test_lab_ubuntu:
+    if: github.repository_owner == 'facebookresearch'
     runs-on: 4-core-ubuntu-gpu-t4
     env:
       PYPI_LAB_UPLOAD_TOKEN: ${{ secrets.PYPI_LAB_UPLOAD_TOKEN }}
