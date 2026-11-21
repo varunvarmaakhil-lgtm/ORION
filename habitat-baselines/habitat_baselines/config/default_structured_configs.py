@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 # Copyright (c) Meta Platforms, Inc. and its affiliates.
@@ -320,12 +319,8 @@ class DDPPOConfig(HabitatBaselinesBaseConfig):
 class AgentAccessMgrConfig(HabitatBaselinesBaseConfig):
     type: str = "SingleAgentAccessMgr"
     num_agent_types: int = 1
-    num_active_agents_per_type: List[int] = field(
-        default_factory=lambda: [1]
-    )
-    num_pool_agents_per_type: List[int] = field(
-        default_factory=lambda: [1]
-    )
+    num_active_agents_per_type: List[int] = field(default_factory=lambda: [1])
+    num_pool_agents_per_type: List[int] = field(default_factory=lambda: [1])
     agent_sample_interval: int = 20
     force_partner_sample_idx: int = -1
     behavior_latent_dim: int = -1

@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 # Copyright (c) Meta Platforms, Inc. and its affiliates.
@@ -195,16 +194,13 @@ class RolloutStorage(Storage):
                     - self.buffers["value_preds"][step]
                 )
                 gae = (
-                    delta
-                    + gamma * tau * gae * self.buffers["masks"][step + 1]
+                    delta + gamma * tau * gae * self.buffers["masks"][step + 1]
                 )
                 self.buffers["returns"][step] = (
                     gae + self.buffers["value_preds"][step]
                 )
         else:
-            self.buffers["returns"][
-                self.current_rollout_step_idx
-            ] = next_value
+            self.buffers["returns"][self.current_rollout_step_idx] = next_value
 
             for step in reversed(range(self.current_rollout_step_idx)):
                 self.buffers["returns"][step] = (

@@ -166,9 +166,7 @@ class BaseTrainer:
 
                         time.sleep(2)
 
-                    logger.info(
-                        f"=======current_ckpt: {current_ckpt}======="
-                    )
+                    logger.info(f"=======current_ckpt: {current_ckpt}=======")
 
                     prev_ckpt_ind += 1
 

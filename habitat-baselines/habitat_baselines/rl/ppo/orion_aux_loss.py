@@ -60,7 +60,9 @@ class ORIONSuccessLoss(nn.Module):
                 nn.init.constant_(module.bias, 0.0)
 
     def predict_logits(self, rnn_output):
-        return self.success_head(rnn_output).squeeze(-1) / self.target_temperature
+        return (
+            self.success_head(rnn_output).squeeze(-1) / self.target_temperature
+        )
 
     @torch.no_grad()
     def compute_targets(self, probs, success, masks):
@@ -79,7 +81,11 @@ class ORIONSuccessLoss(nn.Module):
 
     def _zero(self, reference):
         zero = reference.sum() * 0.0
-        return {"loss": zero, "pred_mean": zero.detach(), "target_mean": zero.detach()}
+        return {
+            "loss": zero,
+            "pred_mean": zero.detach(),
+            "target_mean": zero.detach(),
+        }
 
     def forward(self, aux_loss_state, batch):
         rnn_output = aux_loss_state.get("rnn_output")

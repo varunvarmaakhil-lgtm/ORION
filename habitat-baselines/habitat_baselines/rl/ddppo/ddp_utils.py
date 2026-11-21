@@ -200,16 +200,13 @@ def save_resume_state(
     torch.save(state, filename)
 
 
-
 def load_resume_state(
     filename_or_config: Union[DictConfig, str],
     filename_key: str = "",
 ) -> Optional[Any]:
     """Load a saved Habitat resume state, if one exists."""
     if isinstance(filename_or_config, DictConfig):
-        filename = resume_state_filename(
-            filename_or_config, filename_key
-        )
+        filename = resume_state_filename(filename_or_config, filename_key)
     else:
         filename = filename_or_config
 

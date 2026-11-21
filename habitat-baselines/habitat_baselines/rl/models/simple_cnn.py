@@ -86,7 +86,6 @@ class SimpleCNN(nn.Module):
                     stride=self._cnn_layers_stride[0],
                 ),
                 nn.ReLU(True),
-
                 # Convolution 2
                 nn.Conv2d(
                     in_channels=32,
@@ -95,7 +94,6 @@ class SimpleCNN(nn.Module):
                     stride=self._cnn_layers_stride[1],
                 ),
                 nn.ReLU(True),
-
                 # Convolution 3
                 nn.Conv2d(
                     in_channels=64,
@@ -103,10 +101,8 @@ class SimpleCNN(nn.Module):
                     kernel_size=self._cnn_layers_kernel_size[2],
                     stride=self._cnn_layers_stride[2],
                 ),
-
                 # Convert feature maps into a vector
                 nn.Flatten(),
-
                 # Fully connected layer
                 nn.Linear(
                     32 * int(cnn_dims[0]) * int(cnn_dims[1]),
@@ -166,9 +162,7 @@ class SimpleCNN(nn.Module):
     def is_blind(self):
         """Return True if there is no RGB or depth input."""
 
-        return (
-            self._n_input_rgb + self._n_input_depth == 0
-        )
+        return self._n_input_rgb + self._n_input_depth == 0
 
     def forward(self, observations: Dict[str, torch.Tensor]):
         """Process RGB/depth observations through the CNN."""
@@ -180,14 +174,10 @@ class SimpleCNN(nn.Module):
             rgb_observations = observations["rgb"]
 
             # [B, H, W, C] -> [B, C, H, W]
-            rgb_observations = rgb_observations.permute(
-                0, 3, 1, 2
-            )
+            rgb_observations = rgb_observations.permute(0, 3, 1, 2)
 
             # Normalize RGB pixels from [0, 255] to [0, 1]
-            rgb_observations = (
-                rgb_observations.float() / 255.0
-            )
+            rgb_observations = rgb_observations.float() / 255.0
 
             cnn_input.append(rgb_observations)
 
@@ -196,9 +186,7 @@ class SimpleCNN(nn.Module):
             depth_observations = observations["depth"]
 
             # [B, H, W, C] -> [B, C, H, W]
-            depth_observations = depth_observations.permute(
-                0, 3, 1, 2
-            )
+            depth_observations = depth_observations.permute(0, 3, 1, 2)
 
             cnn_input.append(depth_observations)
 

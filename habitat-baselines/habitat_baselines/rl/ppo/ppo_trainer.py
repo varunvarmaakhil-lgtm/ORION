@@ -73,6 +73,7 @@ class PPOTrainer(BaseRLTrainer):
     r"""Trainer class for PPO algorithm
     Paper: https://arxiv.org/abs/1707.06347.
     """
+
     supported_tasks = ["Nav-v0"]
 
     SHORT_ROLLOUT_THRESHOLD: float = 0.25
@@ -338,7 +339,9 @@ class PPOTrainer(BaseRLTrainer):
         Returns:
             dict containing checkpoint info
         """
-        kwargs.setdefault("weights_only", False)  # trusted local Habitat checkpoints (PyTorch 2.6+)
+        kwargs.setdefault(
+            "weights_only", False
+        )  # trusted local Habitat checkpoints (PyTorch 2.6+)
         return torch.load(checkpoint_path, *args, **kwargs)
 
     def _compute_actions_and_step_envs(self, buffer_index: int = 0):
@@ -416,7 +419,6 @@ class PPOTrainer(BaseRLTrainer):
                 list(x) for x in zip(*outputs)
             ]
 
-            
         # ORION auxiliary target: use Habitat's actual Success measure.
         # The environment info dictionary is populated from get_metrics().
         success_values = []
@@ -424,28 +426,25 @@ class PPOTrainer(BaseRLTrainer):
         for info in infos:
             if "success" not in info:
                 raise KeyError(
-                        "ORION requires Habitat's 'success' measure, but "
-                        "it was missing from environment info. "
-                        f"Available metric keys: {list(info.keys())}"
-                    )
+                    "ORION requires Habitat's 'success' measure, but "
+                    "it was missing from environment info. "
+                    f"Available metric keys: {list(info.keys())}"
+                )
 
             success_value = info["success"]
 
             if isinstance(success_value, torch.Tensor):
-                    success_value = success_value.item()
+                success_value = success_value.item()
 
             success_value = float(success_value)
 
             if not np.isfinite(success_value):
-                    raise ValueError(
-                        "Habitat returned a non-finite success metric: "
-                        f"{success_value}"
-                    )
-
-            success_values.append(
-                    1.0 if success_value >= 0.5 else 0.0
+                raise ValueError(
+                    "Habitat returned a non-finite success metric: "
+                    f"{success_value}"
                 )
 
+            success_values.append(1.0 if success_value >= 0.5 else 0.0)
 
         with g_timer.avg_time("trainer.update_stats"):
             observations = self.envs.post_step(observations)
@@ -724,38 +723,26 @@ class PPOTrainer(BaseRLTrainer):
         # ORION uses an explicit PPO-update target when num_updates is set.
         # This avoids relying on any inherited stopping condition for the
         # 10,000-update training run.
-        configured_num_updates = int(
-            self.config.habitat_baselines.num_updates
-        )
+        configured_num_updates = int(self.config.habitat_baselines.num_updates)
         explicit_update_target = (
-            configured_num_updates
-            if configured_num_updates != -1
-            else None
+            configured_num_updates if configured_num_updates != -1 else None
         )
 
         if rank0_only():
             logger.info("=" * 70)
             logger.info("ORION PPO TRAINING")
-            logger.info(
-                f"Configured num_updates: {configured_num_updates}"
-            )
+            logger.info(f"Configured num_updates: {configured_num_updates}")
             logger.info(
                 f"Configured total_num_steps: "
                 f"{self.config.habitat_baselines.total_num_steps}"
             )
-            logger.info(
-                f"Starting num_updates_done: {self.num_updates_done}"
-            )
-            logger.info(
-                f"Starting num_steps_done: {self.num_steps_done}"
-            )
+            logger.info(f"Starting num_updates_done: {self.num_updates_done}")
+            logger.info(f"Starting num_steps_done: {self.num_steps_done}")
             logger.info(
                 f"Checkpoint folder: "
                 f"{self.config.habitat_baselines.checkpoint_folder}"
             )
-            logger.info(
-                f"Resume state loaded: {resume_state is not None}"
-            )
+            logger.info(f"Resume state loaded: {resume_state is not None}")
             logger.info("=" * 70)
 
         with (
@@ -834,8 +821,8 @@ class PPOTrainer(BaseRLTrainer):
                         )
 
                         for buffer_index in range(self._agent.nbuffers):
-                            count_steps_delta += self._collect_environment_result(
-                                buffer_index
+                            count_steps_delta += (
+                                self._collect_environment_result(buffer_index)
                             )
 
                             if (buffer_index + 1) == self._agent.nbuffers:
@@ -847,7 +834,9 @@ class PPOTrainer(BaseRLTrainer):
                                         "_collect_rollout_step"
                                     )
 
-                                self._compute_actions_and_step_envs(buffer_index)
+                                self._compute_actions_and_step_envs(
+                                    buffer_index
+                                )
 
                         if is_last_step:
                             break
@@ -879,33 +868,21 @@ class PPOTrainer(BaseRLTrainer):
                     and explicit_update_target is not None
                     and self.num_updates_done % 100 == 0
                 ):
-                    logger.info(
-                        "=" * 70
-                    )
+                    logger.info("=" * 70)
                     logger.info(
                         f"ORION PROGRESS: {self.num_updates_done} / "
                         f"{explicit_update_target} "
                         f"({self.num_updates_done / explicit_update_target * 100:.2f}%)"
                     )
-                    logger.info(
-                        f"Environment frames: {self.num_steps_done}"
-                    )
-                    logger.info(
-                        "=" * 70
-                    )
+                    logger.info(f"Environment frames: {self.num_steps_done}")
+                    logger.info("=" * 70)
 
             if rank0_only():
                 logger.info("=" * 70)
                 logger.info("ORION TRAINING COMPLETE")
-                logger.info(
-                    f"Final PPO updates: {self.num_updates_done}"
-                )
-                logger.info(
-                    f"Final environment frames: {self.num_steps_done}"
-                )
-                logger.info(
-                    f"Target PPO updates: {explicit_update_target}"
-                )
+                logger.info(f"Final PPO updates: {self.num_updates_done}")
+                logger.info(f"Final environment frames: {self.num_steps_done}")
+                logger.info(f"Target PPO updates: {explicit_update_target}")
                 logger.info("=" * 70)
 
             self.envs.close()
